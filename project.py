@@ -50,11 +50,15 @@ session = DBSession()
 db = SQLAlchemy()
 bootstrap = Bootstrap(app)
 login_manager = LoginManager(app)
-#login_manager.login_view = 'login'
+#login_manager.init_app(app)
+login_manager.login_view = 'showLogin'
 login_manager.session_protection = 'strong'
 #bcrypt = Bcrypt(app)
 db.init_app(app)
-login_manager.init_app(app)
+
+#@login_manager.user_loader
+#def load_user(id):
+#    return User.query.get(int(id))
 
 # Classes begin
 class EditBookForm(FlaskForm):
@@ -124,7 +128,6 @@ def showLogin():
     state = ''.join(random.choice(string.ascii_uppercase + string.digits)
                     for x in xrange(32))
     login_session['state'] = state
-    # return "The current session state is %s" % login_session['state']
     return render_template('login.html', STATE=state)
 
 @app.route('/gconnect', methods=['POST'])
@@ -210,6 +213,29 @@ def gconnect():
     print "done!"
     return output
 
+# User Helper Functions
+
+def createUser(login_session):
+    newUser = User(name=login_session['username'], email=login_session[
+                   'email'], picture=login_session['picture'])
+    session.add(newUser)
+    session.commit()
+    user = session.query(User).filter_by(email=login_session['email']).one()
+    return user.id
+
+
+def getUserInfo(user_id):
+    user = session.query(User).filter_by(id=user_id).one()
+    return user
+
+
+def getUserID(email):
+    try:
+        user = session.query(User).filter_by(email=email).one()
+        return user.id
+    except:
+        return None
+
 # DISCONNECT - Revoke a current users token and reset their login_session
 
 @app.route('/gdisconnect')
@@ -257,6 +283,7 @@ def display_publisher(publisher_id):
                            publisher_books=publisher_books)
 
 @app.route('/book/delete/<book_id>', methods=['GET', 'POST'])
+@login_required
 def delete_book(book_id):
     book = Book.query.get(book_id)
     if request.method == 'POST':
@@ -267,6 +294,7 @@ def delete_book(book_id):
     return render_template('delete_book.html', book=book, book_id=book.id)
 
 @app.route('/book/edit/<book_id>', methods=['GET', 'POST'])
+@login_required
 def edit_book(book_id):
     book = Book.query.get(book_id)
     form = EditBookForm(obj=book)
