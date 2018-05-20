@@ -308,6 +308,7 @@ def edit_book(book_id):
         book.format = form.format.data
         book.image = form.image.data
         book.num_pages = form.num_pages.data
+        book.pub_date = form.pub_date.data
         db.session.add(book)
         db.session.commit()
         flash('book edited successfully')
