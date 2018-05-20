@@ -8,7 +8,6 @@ from sqlalchemy import create_engine
 
 Base = declarative_base()
 
-#Class
 class Publication(Base):
     #Mapper
     __tablename__ = 'publication'
@@ -16,7 +15,6 @@ class Publication(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String(80), nullable=False)
 
-#Class
 class Book(Base):
     #Mapper
     __tablename__ = 'book'
@@ -26,12 +24,12 @@ class Book(Base):
     author = Column(String(350))
     avg_rating = Column(String(20))
     format = Column(String(50))
-    image = Column(String(100), nullable=True, unique=True)
+    image = Column(String(250))
     num_pages = Column(Integer)
     pub_date = Column(String(20))
     pub_id = Column(Integer, ForeignKey('publication.id'))
+    user_id = Column(Integer, ForeignKey('user.id'))
 
-#Class
 class User(Base):
     #Mapper
     __tablename__= 'users'
@@ -41,6 +39,8 @@ class User(Base):
     user_email = Column(String(60), unique=True, index=True)
     user_password = Column(String(80))
     registration_date = Column(String(20), nullable=False, default=datetime.now())
+    user_id = Column(Integer, ForeignKey('user.id'))
+
 
 engine = create_engine('sqlite:///bookcatalogue.db')
 

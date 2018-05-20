@@ -7,8 +7,8 @@ from wtforms import StringField, SubmitField, PasswordField, BooleanField, \
 from wtforms.validators import DataRequired, Length, Email, EqualTo, \
    ValidationError
 from flask_bootstrap import Bootstrap
-from flask_login import LoginManager, UserMixin, login_user, logout_user, \
-   login_required, current_user
+#from flask_login import LoginManager, UserMixin, login_user, logout_user, \
+#   login_required, current_user
 from flask import session as login_session
 from flask_bcrypt import Bcrypt
 from sqlalchemy import Column, ForeignKey, Integer, String
@@ -49,10 +49,10 @@ session = DBSession()
 # App configuration
 db = SQLAlchemy()
 bootstrap = Bootstrap(app)
-login_manager = LoginManager(app)
+#login_manager = LoginManager(app)
 #login_manager.init_app(app)
-login_manager.login_view = 'showLogin'
-login_manager.session_protection = 'strong'
+#login_manager.login_view = 'showLogin'
+#login_manager.session_protection = 'strong'
 #bcrypt = Bcrypt(app)
 db.init_app(app)
 
@@ -67,8 +67,9 @@ class EditBookForm(FlaskForm):
     avg_rating = StringField('Average Rating Out of 5',
                              validators=[DataRequired()])
     format = StringField('Format', validators=[DataRequired()])
-    img_url = StringField('Image')
+    image = StringField('Image')
     num_pages = StringField('Pages', validators=[DataRequired()])
+    pub_date = StringField('Publication Date', validators=[DataRequired()])
     pub_id = IntegerField('PublisherID', validators=[DataRequired()])
     submit = SubmitField('Update')
 
@@ -77,7 +78,7 @@ class CreateBookForm(FlaskForm):
     author = StringField('Author', validators=[DataRequired()])
     avg_rating = FloatField('Rating out of 5', validators=[DataRequired()])
     format = StringField('Format', validators=[DataRequired()])
-    img_url = StringField('Image')
+    image = StringField('Image')
     num_pages = IntegerField('Pages', validators=[DataRequired()])
     pub_id = IntegerField('PublisherID', validators=[DataRequired()])
     submit = SubmitField('Create')
@@ -103,7 +104,7 @@ class Book(db.Model):
     format = db.Column(db.String(50))
     image = db.Column(db.String(100), nullable=True, unique=True)
     num_pages = db.Column(db.Integer)
-    pub_date = db.Column(db.String(50), default=datetime.now())
+    pub_date = db.Column(db.String(50))
 
     # Relationship
     pub_id = db.Column(db.Integer, db.ForeignKey('publication.id'))
@@ -283,9 +284,10 @@ def display_publisher(publisher_id):
                            publisher_books=publisher_books)
 
 @app.route('/book/delete/<book_id>', methods=['GET', 'POST'])
-@login_required
 def delete_book(book_id):
     book = Book.query.get(book_id)
+    if 'username' not in login_session:
+        return redirect('/login')
     if request.method == 'POST':
         db.session.delete(book)
         db.session.commit()
@@ -294,15 +296,17 @@ def delete_book(book_id):
     return render_template('delete_book.html', book=book, book_id=book.id)
 
 @app.route('/book/edit/<book_id>', methods=['GET', 'POST'])
-@login_required
 def edit_book(book_id):
     book = Book.query.get(book_id)
     form = EditBookForm(obj=book)
+    if 'username' not in login_session:
+        return redirect('/login')
     if form.validate_on_submit():
         book.title = form.title.data
         book.author = form.author.data
         book.avg_rating = form.avg_rating.data
         book.format = form.format.data
+        book.image = form.image.data
         book.num_pages = form.num_pages.data
         db.session.add(book)
         db.session.commit()
@@ -311,9 +315,10 @@ def edit_book(book_id):
     return render_template('edit_book.html', form=form)
 
 @app.route('/create/book/<pub_id>' , methods=['GET', 'POST'])
-@login_required
 def create_book(pub_id):
     form = CreateBookForm()
+    if 'username' not in login_session:
+        return redirect('/login')
     form.pub_id.data = pub_id  # pre-populates pub_id
     if form.validate_on_submit():
         book = Book(title=form.title.data, author=form.author.data,
