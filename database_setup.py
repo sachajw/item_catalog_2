@@ -1,6 +1,3 @@
-import os
-import sys
-from datetime import datetime
 from sqlalchemy import Column, ForeignKey, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
@@ -8,20 +5,14 @@ from sqlalchemy import create_engine
 
 Base = declarative_base()
 
-class Publication(Base):
+class User(Base):
     #Mapper
-    __tablename__ = 'publication'
+    __tablename__= 'user'
     #Table
     id = Column(Integer, primary_key=True)
-    name = Column(String(80), unique=True, nullable=False)
-
-    @property
-    def serialize(self):
-        """Return object data in serializeable format"""
-        return {
-            'id' : self.id,
-            'name' : self.name,
-        }
+    name = Column(String(250), nullable=False)
+    email = Column(String(250), nullable=False)
+    picture = Column(String(250))
 
 class Book(Base):
     #Mapper
@@ -36,7 +27,8 @@ class Book(Base):
     num_pages = Column(Integer)
     pub_date = Column(String(20))
     pub_name = Column(String(80))
-    user_id = Column(Integer, ForeignKey('users.id'))
+    pub_id = Column(String(10))
+    user_id = Column(Integer, ForeignKey('user.id'))
 
     @property
     def serialize(self):
@@ -45,24 +37,13 @@ class Book(Base):
             'id' : self.id,
             'title' : self.title,
             'author' : self.author,
-            'avg_rating' : self.avg_rating,
+            'genre' : self.genre,
             'format' : self.format,
             'image' : self.image,
             'num_pages' : self.num_pages,
             'pub_date' : self.pub_date,
+            'pub_name' : self.pub_name,
         }
-
-class User(Base):
-    #Mapper
-    __tablename__= 'users'
-    #Table
-    id = Column(Integer, primary_key=True)
-    user_name = Column(String(30))
-    user_email = Column(String(60), unique=True, index=True)
-    user_password = Column(String(80))
-    registration_date = Column(String(20), nullable=False, default=datetime.now())
-    user_id = Column(Integer, ForeignKey('users.id'))
-
 
 engine = create_engine('sqlite:///bookcatalogue.db')
 
