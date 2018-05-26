@@ -7,10 +7,7 @@ from wtforms import StringField, SubmitField, PasswordField, BooleanField, \
 from wtforms.validators import DataRequired, Length, Email, EqualTo, \
    ValidationError
 from flask_bootstrap import Bootstrap
-#from flask_login import LoginManager, UserMixin, login_user, logout_user, \
-#   login_required, current_user
 from flask import session as login_session
-from flask_bcrypt import Bcrypt
 from sqlalchemy import Column, ForeignKey, Integer, String
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
@@ -49,38 +46,31 @@ session = DBSession()
 # App configuration
 db = SQLAlchemy()
 bootstrap = Bootstrap(app)
-#login_manager = LoginManager(app)
-#login_manager.init_app(app)
-#login_manager.login_view = 'showLogin'
-#login_manager.session_protection = 'strong'
-#bcrypt = Bcrypt(app)
 db.init_app(app)
-
-#@login_manager.user_loader
-#def load_user(id):
-#    return User.query.get(int(id))
 
 # Classes begin
 class EditBookForm(FlaskForm):
     title = StringField('Title', validators=[DataRequired()])
     author = StringField('Author', validators=[DataRequired()])
-    avg_rating = StringField('Average Rating Out of 5',
-                             validators=[DataRequired()])
+    genre = StringField('Genre', validators=[DataRequired()])
     format = StringField('Format', validators=[DataRequired()])
     image = StringField('Image')
     num_pages = StringField('Pages', validators=[DataRequired()])
     pub_date = StringField('Publication Date', validators=[DataRequired()])
-    pub_id = IntegerField('PublisherID', validators=[DataRequired()])
+    pub_name = StringField('Publisher Name', validators=[DataRequired()])
+    #pub_id = IntegerField('PublisherID')
     submit = SubmitField('Update')
 
 class CreateBookForm(FlaskForm):
     title = StringField('Title', validators=[DataRequired()])
     author = StringField('Author', validators=[DataRequired()])
-    avg_rating = FloatField('Rating out of 5', validators=[DataRequired()])
+    genre = StringField('Genre', validators=[DataRequired()])
     format = StringField('Format', validators=[DataRequired()])
     image = StringField('Image')
     num_pages = IntegerField('Pages', validators=[DataRequired()])
-    pub_id = IntegerField('PublisherID', validators=[DataRequired()])
+    pub_date = IntegerField('Publication Year', validators=[DataRequired()])
+    pub_name = StringField('Publisher Name', validators=[DataRequired()])
+    #pub_id = IntegerField('PublisherID')
     submit = SubmitField('Create')
 
 class Publication(db.Model):
@@ -100,7 +90,7 @@ class Book(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(500), nullable=False, index=True)
     author = db.Column(db.String(350))
-    avg_rating = db.Column(db.Float)
+    genre = db.Column(db.String(50))
     format = db.Column(db.String(50))
     image = db.Column(db.String(100), nullable=True, unique=True)
     num_pages = db.Column(db.Integer)
@@ -108,16 +98,19 @@ class Book(db.Model):
 
     # Relationship
     pub_id = db.Column(db.Integer, db.ForeignKey('publication.id'))
+    pub_name = db.Column(db.String, db.ForeignKey('publication.name'))
 
-    def __init__(self, title, author, avg_rating, book_format, image, num_pages,
-                 pub_id):
+    def __init__(self, title, author, genre, format, image, num_pages, pub_date,
+                 pub_name):#, pub_id):
         self.title = title
         self.author = author
-        self.avg_rating = avg_rating
-        self.format = book_format
+        self.genre = genre
+        self.format = format
         self.image = image
         self.num_pages = num_pages
-        self.pub_id = pub_id
+        self.pub_date = pub_date
+        self.pub_name = pub_name
+        #self.pub_id = pub_id
 
     def __repr__(self):
         return '{} by {}'.format(self.title, self.author)
@@ -221,18 +214,18 @@ def createUser(login_session):
                    'email'], picture=login_session['picture'])
     session.add(newUser)
     session.commit()
-    user = session.query(User).filter_by(email=login_session['email']).one()
+    user = session.query(Users).filter_by(email=login_session['email']).one()
     return user.id
 
 
 def getUserInfo(user_id):
-    user = session.query(User).filter_by(id=user_id).one()
+    user = session.query(Users).filter_by(id=user_id).one()
     return user
 
 
 def getUserID(email):
     try:
-        user = session.query(User).filter_by(email=email).one()
+        user = session.query(Users).filter_by(email=email).one()
         return user.id
     except:
         return None
@@ -269,19 +262,48 @@ def gdisconnect():
         response.headers['Content-Type'] = 'application/json'
         return response
 
+# JSON APIs to view book Information
+@app.route('/JSON')
+def display_booksJSON():
+    book = session.query(Book).all()
+    return jsonify(books=[r.serialize for r in book])
+
+# JSON APIs end
+
+# Show all books
 @app.route('/')
 def display_books():
     books = session.query(Book).all()
-
     return render_template('home.html', books=books)
+
+@app.route('/create' , methods=['GET', 'POST'])
+def enter_book():
+    form = CreateBookForm()
+    #form.pub_id.data = pub_id  # pre-populates pub_id
+    if 'username' not in login_session:
+        return redirect('/login')
+    if form.validate_on_submit():
+        book = Book(title=form.title.data,
+                    author=form.author.data,
+                    genre=form.genre.data,
+                    format=form.format.data,
+                    image=form.image.data,
+                    num_pages=form.num_pages.data,
+                    pub_date=form.pub_date.data,
+                    pub_name=form.pub_name.data)
+                    #pub_id=form.pub_id.data)
+        db.session.add(book)
+        db.session.commit()
+        flash('book added successfully')
+        return redirect(url_for('display_books'))
+    return render_template('create_book.html', form=form)
+
 
 @app.route('/display/publisher/<publisher_id>')
 def display_publisher(publisher_id):
-    publisher = session.query(Publication).filter_by(id=publisher_id).first()
-    publisher_books = session.query(Book).filter_by(pub_id = publisher.id).all()
-
-    return render_template('publisher.html', publisher=publisher,
-                           publisher_books=publisher_books)
+    publisher = session.query(book).filter_by(id=publisher_id).first()
+    publisher_books = session.query(Book).filter_by(pub_name = pub.name).all()
+    return render_template('publisher.html', publisher=publisher)
 
 @app.route('/book/delete/<book_id>', methods=['GET', 'POST'])
 def delete_book(book_id):
@@ -304,34 +326,39 @@ def edit_book(book_id):
     if form.validate_on_submit():
         book.title = form.title.data
         book.author = form.author.data
-        book.avg_rating = form.avg_rating.data
+        book.genre = form.genre.data
         book.format = form.format.data
         book.image = form.image.data
         book.num_pages = form.num_pages.data
         book.pub_date = form.pub_date.data
+        book.pub_name = form.pub_name.data
+        #book.pub_id = form.pub_id.data
         db.session.add(book)
         db.session.commit()
         flash('book edited successfully')
         return redirect(url_for('display_books'))
     return render_template('edit_book.html', form=form)
 
-@app.route('/create/book/<pub_id>' , methods=['GET', 'POST'])
-def create_book(pub_id):
-    form = CreateBookForm()
-    if 'username' not in login_session:
-        return redirect('/login')
-    form.pub_id.data = pub_id  # pre-populates pub_id
-    if form.validate_on_submit():
-        book = Book(title=form.title.data, author=form.author.data,
-                    avg_rating=form.avg_rating.data,
-                    book_format=form.format.data, image=form.img_url.data,
-                    num_pages=form.num_pages.data,
-                    pub_id=form.pub_id.data)
-        db.session.add(book)
-        db.session.commit()
-        flash('book added successfully')
-        return redirect(url_for('display_publisher', publisher_id=pub_id))
-    return render_template('create_book.html', form=form, pub_id=pub_id)
+#@app.route('/create/book/<pub_id>' , methods=['GET', 'POST'])
+#def create_book(pub_id):
+#    form = CreateBookForm()
+#    if 'username' not in login_session:
+#        return redirect('/login')
+#    form.pub_id.data = pub_id  # pre-populates pub_id
+#    if form.validate_on_submit():
+#        book = Book(title=form.title.data,
+#                    author=form.author.data,
+#                    genre=form.genre.data,
+#                    format=form.format.data,
+#                    image=form.image.data,
+#                    num_pages=form.num_pages.data,
+#                    pub_date=form.pub_date.data,
+#                    pub_id=form.pub_id.data)
+#        db.session.add(book)
+#        db.session.commit()
+#        flash('book added successfully')
+#        return redirect(url_for('display_publisher', publisher_id=pub_id))
+#    return render_template('create_book.html', form=form, pub_id=pub_id)
 # Routes end
 
 if __name__ == '__main__':
