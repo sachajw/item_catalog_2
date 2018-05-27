@@ -6,18 +6,16 @@ from sqlalchemy import create_engine
 Base = declarative_base()
 
 class User(Base):
-    #Mapper
     __tablename__= 'user'
-    #Table
+
     id = Column(Integer, primary_key=True)
     name = Column(String(250), nullable=False)
     email = Column(String(250), nullable=False)
     picture = Column(String(250))
 
 class Book(Base):
-    #Mapper
     __tablename__ = 'book'
-    #Table
+
     id = Column(Integer, primary_key=True)
     title = Column(String(500), unique=True, nullable=False, index=True)
     author = Column(String(350))
@@ -29,6 +27,7 @@ class Book(Base):
     pub_name = Column(String(80))
     pub_id = Column(String(10))
     user_id = Column(Integer, ForeignKey('user.id'))
+    user = relationship(User)
 
     @property
     def serialize(self):

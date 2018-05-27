@@ -71,17 +71,12 @@ class CreateBookForm(FlaskForm):
     pub_name = StringField('Publisher Name', validators=[DataRequired()])
     submit = SubmitField('Create')
 
-class Publication(db.Model):
-    __tablename__ = 'publication'
-
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(80), nullable=False)
-
-    def __init__(self, name):
-        self.name = name
-
-    def __repr__(self):
-        return 'Publisher is {}'.format(self.name)
+class User(db.Model):
+    __tablename__ = 'user'
+    id = Column(Integer, primary_key=True)
+    name = Column(String(250), nullable=False)
+    email = Column(String(250), nullable=False)
+    picture = Column(String(250))
 
 class Book(db.Model):
     __tablename__ = 'book'
@@ -93,10 +88,6 @@ class Book(db.Model):
     image = db.Column(db.String(100), nullable=True, unique=True)
     num_pages = db.Column(db.Integer)
     pub_date = db.Column(db.String(50))
-
-    # Relationship
-    pub_id = db.Column(db.Integer, db.ForeignKey('publication.id'))
-    pub_name = db.Column(db.String, db.ForeignKey('publication.name'))
 
     def __init__(self, title, author, genre, format, image, num_pages, pub_date,
                  pub_name):
@@ -261,8 +252,8 @@ def gdisconnect():
 # JSON APIs to view book Information
 @app.route('/JSON')
 def display_booksJSON():
-    book = session.query(Book).all()
-    return jsonify(books=[r.serialize for r in book])
+    books = session.query(Book).all()
+    return jsonify(books=[r.serialize for r in books])
 # JSON APIs end
 
 # Show all books
