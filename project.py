@@ -87,6 +87,7 @@ class Book(db.Model):
     format = db.Column(db.String(50))
     image = db.Column(db.String(100), nullable=True, unique=True)
     num_pages = db.Column(db.Integer)
+    pub_name = db.Column(db.String(80))
     pub_date = db.Column(db.String(50))
 
     def __init__(self, title, author, genre, format, image, num_pages, pub_date,
@@ -183,6 +184,14 @@ def gconnect():
     login_session['username'] = data['name']
     login_session['picture'] = data['picture']
     login_session['email'] = data['email']
+    # Add provider to login session
+    login_session['provider'] = 'google'
+
+    # see if user exists, if it doesn't make a new one
+    user_id = getUserID(data["email"])
+    if not user_id:
+        user_id = createUser(login_session)
+    login_session['user_id'] = user_id
 
     output = ''
     output += '<h1>Welcome, '
@@ -221,26 +230,17 @@ def getUserID(email):
 
 @app.route('/gdisconnect')
 def gdisconnect():
+    # Only disconnect a connected user
     access_token = login_session.get('access_token')
     if access_token is None:
-        print 'Access Token is None'
-        response = make_response(json.dumps('Current user not connected.'), 401)
+        response = make_response(
+            json.dumps('Current user not connected.'), 401)
         response.headers['Content-Type'] = 'application/json'
         return response
-    print 'In gdisconnect access token is %s', access_token
-    print 'User name is: '
-    print login_session['username']
-    url = 'https://accounts.google.com/o/oauth2/revoke?token=%s' % login_session['access_token']
+    url = 'https://accounts.google.com/o/oauth2/revoke?token=%s' % access_token
     h = httplib2.Http()
     result = h.request(url, 'GET')[0]
-    print 'result is '
-    print result
     if result['status'] == '200':
-        del login_session['access_token']
-        del login_session['gplus_id']
-        del login_session['username']
-        del login_session['email']
-        del login_session['picture']
         response = make_response(json.dumps('Successfully disconnected.'), 200)
         response.headers['Content-Type'] = 'application/json'
         return response
@@ -249,11 +249,11 @@ def gdisconnect():
         response.headers['Content-Type'] = 'application/json'
         return response
 
-# JSON APIs to view book Information
+# JSON API to view book Information
 @app.route('/JSON')
 def display_booksJSON():
     books = session.query(Book).all()
-    return jsonify(books=[r.serialize for r in books])
+    return jsonify(books=[b.serialize for b in books])
 # JSON APIs end
 
 # Show all books
@@ -320,6 +320,25 @@ def edit_book(book_id):
         flash('book edited successfully')
         return redirect(url_for('display_books'))
     return render_template('edit_book.html', form=form)
+
+# Disconnect based on provider
+@app.route('/disconnect')
+def disconnect():
+    if 'provider' in login_session:
+        if login_session['provider'] == 'google':
+            gdisconnect()
+            del login_session['gplus_id']
+            del login_session['access_token']
+        del login_session['username']
+        del login_session['email']
+        del login_session['picture']
+        del login_session['user_id']
+        del login_session['provider']
+        flash("You have successfully logged out.")
+        return redirect(url_for('display_books'))
+    else:
+        flash("You were not logged in")
+        return redirect(url_for('display_books'))
 
 if __name__ == '__main__':
     app.debug = True
