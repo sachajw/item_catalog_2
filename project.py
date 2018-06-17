@@ -107,6 +107,21 @@ class Book(db.Model):
 
     def __repr__(self):
         return '{} by {}'.format(self.title, self.author)
+    
+    @property
+    def serialize(self):
+        """Return object data in serializeable format"""
+        return {
+            'id' : self.id,
+            'title' : self.title,
+            'author' : self.author,
+            'genre' : self.genre,
+            'format' : self.format,
+            'image' : self.image,
+            'num_pages' : self.num_pages,
+            'pub_date' : self.pub_date,
+            'pub_name' : self.pub_name,
+        }
 
 
 # Routes begin
