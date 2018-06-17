@@ -1,4 +1,9 @@
-from flask import Flask , render_template, request, redirect, url_for, flash, \
+# CRUD Operations
+from database_setup import Base, Book
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
+from flask import Flask, render_template, request, redirect, url_for, flash, \
    jsonify
 from flask_wtf import FlaskForm
 from flask_wtf.csrf import CSRFProtect, CSRFError
@@ -10,32 +15,16 @@ from flask_bootstrap import Bootstrap
 from flask import session as login_session
 from sqlalchemy import Column, ForeignKey, Integer, String
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime
-import random, string
+import random
+import string
 from oauth2client.client import flow_from_clientsecrets
 from oauth2client.client import FlowExchangeError
 import httplib2
 import json
 from flask import make_response
 import requests
-
 app = Flask(__name__)
 
-CLIENT_ID = json.loads(
-    open('client_secrets.json', 'r').read())['web']['client_id']
-APPLICATION_NAME = "Book Catalogue"
-
-# CSRF Config
-app.config.update(
-        SECRET_KEY='a random string',
-        SQLALCHEMY_DATABASE_URI=('sqlite:///bookcatalogue.db'),
-        SQLALCHEMY_TRACK_MODIFICATIONS = False
-    )
-
-# CRUD Operations
-from database_setup import Base, Book
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 
 # Create session and connect to DB
 engine = create_engine('sqlite:///bookcatalogue.db')
@@ -43,10 +32,22 @@ Base.metadata.bind = engine
 DBSession = sessionmaker(bind=engine)
 session = DBSession()
 
+CLIENT_ID = json.loads(
+    open('client_secrets.json', 'r').read())['web']['client_id']
+APPLICATION_NAME = "Book Catalogue"
+
+# CSRF Config
+app.config.update(
+    SECRET_KEY='a random string',
+    SQLALCHEMY_DATABASE_URI=('sqlite:///bookcatalogue.db'),
+    SQLALCHEMY_TRACK_MODIFICATIONS=False
+    )
+
 # App configuration
 db = SQLAlchemy()
 bootstrap = Bootstrap(app)
 db.init_app(app)
+
 
 # Classes begin
 class EditBookForm(FlaskForm):
@@ -60,6 +61,7 @@ class EditBookForm(FlaskForm):
     pub_name = StringField('Publisher Name', validators=[DataRequired()])
     submit = SubmitField('Update')
 
+
 class CreateBookForm(FlaskForm):
     title = StringField('Title', validators=[DataRequired()])
     author = StringField('Author', validators=[DataRequired()])
@@ -71,12 +73,14 @@ class CreateBookForm(FlaskForm):
     pub_name = StringField('Publisher Name', validators=[DataRequired()])
     submit = SubmitField('Create')
 
+
 class User(db.Model):
     __tablename__ = 'user'
     id = Column(Integer, primary_key=True)
     name = Column(String(250), nullable=False)
     email = Column(String(250), nullable=False)
     picture = Column(String(250))
+
 
 class Book(db.Model):
     __tablename__ = 'book'
@@ -90,8 +94,8 @@ class Book(db.Model):
     pub_name = db.Column(db.String(80))
     pub_date = db.Column(db.String(50))
 
-    def __init__(self, title, author, genre, format, image, num_pages, pub_date,
-                 pub_name):
+    def __init__(self, title, author, genre, format, image, num_pages,
+                pub_date, pub_name):
         self.title = title
         self.author = author
         self.genre = genre
@@ -104,6 +108,7 @@ class Book(db.Model):
     def __repr__(self):
         return '{} by {}'.format(self.title, self.author)
 
+
 # Routes begin
 # Create anti-forgery state token
 @app.route('/login')
@@ -112,6 +117,7 @@ def showLogin():
                     for x in xrange(32))
     login_session['state'] = state
     return render_template('login.html', STATE=state)
+
 
 @app.route('/gconnect', methods=['POST'])
 def gconnect():
@@ -206,6 +212,7 @@ def gconnect():
 
 # User Helper Functions
 
+
 def createUser(login_session):
     newUser = User(name=login_session['username'],
                    email=login_session['email'],
@@ -215,9 +222,11 @@ def createUser(login_session):
     user = session.query(User).filter_by(email=login_session['email']).one()
     return user.id
 
+
 def getUserInfo(user_id):
     user = session.query(User).filter_by(id=user_id).one()
     return user
+
 
 def getUserID(email):
     try:
@@ -227,6 +236,7 @@ def getUserID(email):
         return None
 
 # DISCONNECT - Revoke a current users token and reset their login_session
+
 
 @app.route('/gdisconnect')
 def gdisconnect():
@@ -249,6 +259,7 @@ def gdisconnect():
         response.headers['Content-Type'] = 'application/json'
         return response
 
+
 # JSON API to view book Information
 @app.route('/JSON')
 def display_booksJSON():
@@ -256,13 +267,15 @@ def display_booksJSON():
     return jsonify(book=[b.serialize for b in books])
 # JSON APIs end
 
+
 # Show all books
 @app.route('/')
 def display_books():
     books = session.query(Book).all()
     return render_template('home.html', books=books)
 
-@app.route('/create' , methods=['GET', 'POST'])
+
+@app.route('/create', methods=['GET', 'POST'])
 def add_new_book():
     form = CreateBookForm()
     if 'username' not in login_session:
@@ -282,11 +295,13 @@ def add_new_book():
         return redirect(url_for('display_books'))
     return render_template('create_book.html', form=form)
 
+
 @app.route('/display/publisher/<publisher_id>')
 def display_publisher(publisher_id):
     publisher = session.query(book).filter_by(id=publisher_id).first()
-    publisher_books = session.query(Book).filter_by(pub_name = pub.name).all()
+    publisher_books = session.query(Book).filter_by(pub_name=pub.name).all()
     return render_template('publisher.html', publisher=publisher)
+
 
 @app.route('/book/delete/<book_id>', methods=['GET', 'POST'])
 def delete_book(book_id):
@@ -299,6 +314,7 @@ def delete_book(book_id):
         flash('book deleted successfully')
         return redirect(url_for('display_books'))
     return render_template('delete_book.html', book=book, book_id=book.id)
+
 
 @app.route('/book/edit/<book_id>', methods=['GET', 'POST'])
 def edit_book(book_id):
@@ -320,6 +336,7 @@ def edit_book(book_id):
         flash('book edited successfully')
         return redirect(url_for('display_books'))
     return render_template('edit_book.html', form=form)
+
 
 # Disconnect based on provider
 @app.route('/disconnect')
