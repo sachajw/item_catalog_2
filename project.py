@@ -95,7 +95,7 @@ class Book(db.Model):
     pub_date = db.Column(db.String(50))
 
     def __init__(self, title, author, genre, format, image, num_pages,
-                pub_date, pub_name):
+                 pub_date, pub_name):
         self.title = title
         self.author = author
         self.genre = genre
