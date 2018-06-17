@@ -5,7 +5,7 @@
       <div class="row">
           {% for book in books %}
               <div class="col-md-4">
-                  <img src="static/img/{{ book.image }}"
+                  <img src="{{ book.image }}"
                   alt="book-img" height="300" width="200" class="image-rounded" />
                   <h4>Title: {{ book.title }}</h4>
                   <p>Authors: {{ book.author }}</p>

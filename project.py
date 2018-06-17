@@ -253,7 +253,7 @@ def gdisconnect():
 @app.route('/JSON')
 def display_booksJSON():
     books = session.query(Book).all()
-    return jsonify(books=[b.serialize for b in books])
+    return jsonify(book=[b.serialize for b in books])
 # JSON APIs end
 
 # Show all books
