@@ -31,21 +31,6 @@ class Book(Base):
     user_id = Column(Integer, ForeignKey('user.id'))
     user = relationship(User)
 
-    @property
-    def serialize(self):
-        """Return object data in serializeable format"""
-        return {
-            'id' : self.id,
-            'title' : self.title,
-            'author' : self.author,
-            'genre' : self.genre,
-            'format' : self.format,
-            'image' : self.image,
-            'num_pages' : self.num_pages,
-            'pub_date' : self.pub_date,
-            'pub_name' : self.pub_name,
-        }
-
 engine = create_engine('sqlite:///bookcatalogue.db')
 
 Base.metadata.create_all(engine)
