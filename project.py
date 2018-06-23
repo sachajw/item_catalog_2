@@ -3,14 +3,25 @@ from database_setup import Base, Book
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from flask import Flask, render_template, request, redirect, url_for, flash, \
-   jsonify
+from flask import (Flask,
+                   render_template,
+                   request,
+                   redirect,
+                   url_for,
+                   flash,
+                   jsonify)
 from flask_wtf import FlaskForm
-from flask_wtf.csrf import CSRFProtect, CSRFError
-from wtforms import StringField, SubmitField, PasswordField, BooleanField, \
-   IntegerField, FloatField
-from wtforms.validators import DataRequired, Length, Email, EqualTo, \
-   ValidationError
+from wtforms import (StringField,
+                     SubmitField,
+                     PasswordField,
+                     BooleanField,
+                     IntegerField,
+                     FloatField)
+from wtforms.validators import (DataRequired,
+                                Length,
+                                Email,
+                                EqualTo,
+                                ValidationError)
 from flask_bootstrap import Bootstrap
 from flask import session as login_session
 from sqlalchemy import Column, ForeignKey, Integer, String
@@ -107,7 +118,7 @@ class Book(db.Model):
 
     def __repr__(self):
         return '{} by {}'.format(self.title, self.author)
-    
+
     @property
     def serialize(self):
         """Return object data in serializeable format"""
@@ -220,7 +231,11 @@ def gconnect():
     output += '!</h1>'
     output += '<img src="'
     output += login_session['picture']
-    output += ' " style = "width: 300px; height: 300px;border-radius: 150px;-webkit-border-radius: 150px;-moz-border-radius: 150px;"> '
+    output += ' " style = "width: 300px;' \
+              'height: 300px;' \
+              'border-radius: 150px;' \
+              '-webkit-border-radius: 150px;' \
+              '-moz-border-radius: 150px;"> '
     flash("you are now logged in as %s" % login_session['username'])
     print "done!"
     return output
@@ -309,13 +324,6 @@ def add_new_book():
         flash('book added successfully')
         return redirect(url_for('display_books'))
     return render_template('create_book.html', form=form)
-
-
-@app.route('/display/publisher/<publisher_id>')
-def display_publisher(publisher_id):
-    publisher = session.query(book).filter_by(id=publisher_id).first()
-    publisher_books = session.query(Book).filter_by(pub_name=pub.name).all()
-    return render_template('publisher.html', publisher=publisher)
 
 
 @app.route('/book/delete/<book_id>', methods=['GET', 'POST'])
