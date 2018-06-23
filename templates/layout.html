@@ -28,8 +28,11 @@
                     <ul class="nav navbar-nav pull-right">
                       <li><a href="{{ url_for('display_books')}}"> Home </a></li>
                       <li><a href="{{ url_for('add_new_book')}}"> Add New Book </a></li>
+                      {% if 'username' not in session %}
                       <li><a href="{{ url_for('showLogin')}}"> Google Sign In</a></li>
+                      {% else %}
                       <li><a href="{{ url_for('disconnect')}}"> Google Sign Out</a></li>
+                      {% endif %}
                     </ul>
                 </div>
             </nav>

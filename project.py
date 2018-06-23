@@ -1,5 +1,5 @@
 # CRUD Operations
-from database_setup import Base, Book
+from database_setup import Base, User, Book
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -60,7 +60,7 @@ bootstrap = Bootstrap(app)
 db.init_app(app)
 
 
-# Classes begin
+# Forms are defined here
 class EditBookForm(FlaskForm):
     title = StringField('Title', validators=[DataRequired()])
     author = StringField('Author', validators=[DataRequired()])
@@ -83,56 +83,6 @@ class CreateBookForm(FlaskForm):
     pub_date = IntegerField('Publication Year', validators=[DataRequired()])
     pub_name = StringField('Publisher Name', validators=[DataRequired()])
     submit = SubmitField('Create')
-
-
-class User(db.Model):
-    __tablename__ = 'user'
-    id = Column(Integer, primary_key=True)
-    name = Column(String(250), nullable=False)
-    email = Column(String(250), nullable=False)
-    picture = Column(String(250))
-
-
-class Book(db.Model):
-    __tablename__ = 'book'
-    id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(500), nullable=False, index=True)
-    author = db.Column(db.String(350))
-    genre = db.Column(db.String(50))
-    format = db.Column(db.String(50))
-    image = db.Column(db.String(100), nullable=True, unique=True)
-    num_pages = db.Column(db.Integer)
-    pub_name = db.Column(db.String(80))
-    pub_date = db.Column(db.String(50))
-
-    def __init__(self, title, author, genre, format, image, num_pages,
-                 pub_date, pub_name):
-        self.title = title
-        self.author = author
-        self.genre = genre
-        self.format = format
-        self.image = image
-        self.num_pages = num_pages
-        self.pub_date = pub_date
-        self.pub_name = pub_name
-
-    def __repr__(self):
-        return '{} by {}'.format(self.title, self.author)
-
-    @property
-    def serialize(self):
-        """Return object data in serializeable format"""
-        return {
-            'id' : self.id,
-            'title' : self.title,
-            'author' : self.author,
-            'genre' : self.genre,
-            'format' : self.format,
-            'image' : self.image,
-            'num_pages' : self.num_pages,
-            'pub_date' : self.pub_date,
-            'pub_name' : self.pub_name,
-        }
 
 
 # Routes begin
@@ -328,12 +278,12 @@ def add_new_book():
 
 @app.route('/book/delete/<book_id>', methods=['GET', 'POST'])
 def delete_book(book_id):
-    book = Book.query.get(book_id)
+    book = session.query(Book).filter_by(id=book_id).one()
     if 'username' not in login_session:
         return redirect('/login')
     if request.method == 'POST':
-        db.session.delete(book)
-        db.session.commit()
+        session.delete(book)
+        session.commit()
         flash('book deleted successfully')
         return redirect(url_for('display_books'))
     return render_template('delete_book.html', book=book, book_id=book.id)
@@ -341,21 +291,21 @@ def delete_book(book_id):
 
 @app.route('/book/edit/<book_id>', methods=['GET', 'POST'])
 def edit_book(book_id):
-    book = Book.query.get(book_id)
-    form = EditBookForm(obj=book)
+    editedbook = session.query(Book).filter_by(id=book_id).one()
+    form = EditBookForm(obj=editedbook)
     if 'username' not in login_session:
         return redirect('/login')
     if form.validate_on_submit():
-        book.title = form.title.data
-        book.author = form.author.data
-        book.genre = form.genre.data
-        book.format = form.format.data
-        book.image = form.image.data
-        book.num_pages = form.num_pages.data
-        book.pub_date = form.pub_date.data
-        book.pub_name = form.pub_name.data
-        db.session.add(book)
-        db.session.commit()
+        editedbook.title = form.title.data
+        editedbook.author = form.author.data
+        editedbook.genre = form.genre.data
+        editedbook.format = form.format.data
+        editedbook.image = form.image.data
+        editedbook.num_pages = form.num_pages.data
+        editedbook.pub_date = form.pub_date.data
+        editedbook.pub_name = form.pub_name.data
+        session.add(editedbook)
+        session.commit()
         flash('book edited successfully')
         return redirect(url_for('display_books'))
     return render_template('edit_book.html', form=form)
